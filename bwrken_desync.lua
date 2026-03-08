@@ -36,22 +36,11 @@ local function setNoAnimation(state)
     end
 end
 
-local LockedCFrame = nil
-
-local function startDesync()
-    if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-        LockedCFrame = Player.Character.HumanoidRootPart.CFrame
-    end
-    Connection = RunService.Heartbeat:Connect(function()
-        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and LockedCFrame then
-            Player.Character.HumanoidRootPart.CFrame = LockedCFrame
-        end
-    end)
-end
+local function startDesync() end
 
 local function stopDesync()
     if Connection then Connection:Disconnect(); Connection = nil end
-    LockedCFrame = nil
+
 end
 
 -- GUI
