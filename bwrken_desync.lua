@@ -75,7 +75,7 @@ end
 
 -- Beautiful UI Creation
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ZawaskyeeDesyncUI"
+ScreenGui.Name = "BwrkensDesyncUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
