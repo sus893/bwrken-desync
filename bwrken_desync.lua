@@ -1,4 +1,3 @@
-local raknet = require("raknet")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -142,32 +141,19 @@ local ButtonCorner = Instance.new("UICorner")
 ButtonCorner.CornerRadius = UDim.new(0, 8)
 ButtonCorner.Parent = ToggleButton
 
-local ButtonGradient = Instance.new("UIGradient")
-ButtonGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200))
-}
-ButtonGradient.Rotation = 90
-ButtonGradient.Parent = ToggleButton
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Parent = Frame
+MinimizeButton.Size = UDim2.new(0, 20, 0, 20)
+MinimizeButton.Position = UDim2.new(1, -25, 0, 5)
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+MinimizeButton.Text = "—"
+MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeButton.Font = Enum.Font.GothamBold
+MinimizeButton.BorderSizePixel = 0
 
-local hovering = false
-ToggleButton.MouseEnter:Connect(function()
-    hovering = true
-    if not Toggled then
-        TweenService:Create(ToggleButton, TweenInfo.new(0.2), {
-            BackgroundColor3 = Color3.fromRGB(85, 85, 95)
-        }):Play()
-    end
-end)
-
-ToggleButton.MouseLeave:Connect(function()
-    hovering = false
-    if not Toggled then
-        TweenService:Create(ToggleButton, TweenInfo.new(0.2), {
-            BackgroundColor3 = Color3.fromRGB(70, 70, 80)
-        }):Play()
-    end
-end)
+local MinimizeCorner = Instance.new("UICorner")
+MinimizeCorner.CornerRadius = UDim.new(0, 4)
+MinimizeCorner.Parent = MinimizeButton
 
 ToggleButton.MouseButton1Click:Connect(function()
     if Toggled then
@@ -201,20 +187,6 @@ ToggleButton.MouseButton1Click:Connect(function()
     end
     Toggled = not Toggled
 end)
-
-local MinimizeButton = Instance.new("TextButton")
-MinimizeButton.Parent = Frame
-MinimizeButton.Size = UDim2.new(0, 20, 0, 20)
-MinimizeButton.Position = UDim2.new(1, -25, 0, 5)
-MinimizeButton.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
-MinimizeButton.Text = "—"
-MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinimizeButton.Font = Enum.Font.GothamBold
-MinimizeButton.BorderSizePixel = 0
-
-local MinimizeCorner = Instance.new("UICorner")
-MinimizeCorner.CornerRadius = UDim.new(0, 4)
-MinimizeCorner.Parent = MinimizeButton
 
 local minimized = false
 MinimizeButton.MouseButton1Click:Connect(function()
