@@ -9,6 +9,7 @@ local Toggled = false
 local NoAnimToggled = false
 local Connection = nil
 local Keybind = nil
+local loggedPackets = {}
 
 -- Load saved keybind
 pcall(function()
@@ -16,6 +17,15 @@ pcall(function()
     if saved ~= "" then
         local ok, kc = pcall(function() return Enum.KeyCode[saved] end)
         if ok and kc then Keybind = saved end
+    end
+end)
+
+-- Packet logger hook (always on)
+raknet.add_send_hook(function(packet)
+    local id = packet.PacketId
+    if not loggedPackets[id] then
+        loggedPackets[id] = true
+        print("New Packet ID: " .. tostring(id) .. " (0x" .. string.format("%X", id) .. ")")
     end
 end)
 
