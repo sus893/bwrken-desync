@@ -122,11 +122,11 @@ StatusLabel.TextScaled = true
 StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
 
--- Main toggle button
+-- Main toggle button (slightly narrower to fit keybind button)
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Parent = Frame
-ToggleButton.Size = UDim2.new(0.8, 0, 0, 32)
-ToggleButton.Position = UDim2.new(0.1, 0, 0, 52)
+ToggleButton.Size = UDim2.new(0, 158, 0, 32)
+ToggleButton.Position = UDim2.new(0, 18, 0, 52)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(70, 70, 80)
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleButton.TextScaled = true
@@ -136,6 +136,21 @@ ToggleButton.BorderSizePixel = 0
 local ButtonCorner = Instance.new("UICorner")
 ButtonCorner.CornerRadius = UDim.new(0, 8)
 ButtonCorner.Parent = ToggleButton
+
+-- Keybind "..." button
+local KeybindBtn = Instance.new("TextButton")
+KeybindBtn.Parent = Frame
+KeybindBtn.Size = UDim2.new(0, 28, 0, 32)
+KeybindBtn.Position = UDim2.new(0, 180, 0, 52)
+KeybindBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+KeybindBtn.TextColor3 = Color3.fromRGB(180, 180, 255)
+KeybindBtn.TextScaled = true
+KeybindBtn.Text = "⌨"
+KeybindBtn.Font = Enum.Font.GothamBold
+KeybindBtn.BorderSizePixel = 0
+local KeybindBtnCorner = Instance.new("UICorner")
+KeybindBtnCorner.CornerRadius = UDim.new(0, 8)
+KeybindBtnCorner.Parent = KeybindBtn
 
 -- No anim button
 local NoAnimButton = Instance.new("TextButton")
@@ -251,18 +266,16 @@ local function doToggle()
     updateButtonText()
 end
 
--- Left click = toggle
 ToggleButton.MouseButton1Click:Connect(function()
     if WaitingForKey then return end
-    KeyMenu.Visible = false
     doToggle()
 end)
 
--- Right click = show context menu
-ToggleButton.MouseButton2Click:Connect(function()
+-- Keybind button click = open menu
+KeybindBtn.MouseButton1Click:Connect(function()
     if WaitingForKey then return end
-    local pos = ToggleButton.AbsolutePosition
-    KeyMenu.Position = UDim2.new(0, pos.X + ToggleButton.AbsoluteSize.X + 5, 0, pos.Y)
+    local pos = KeybindBtn.AbsolutePosition
+    KeyMenu.Position = UDim2.new(0, pos.X - 140, 0, pos.Y + 36)
     KeyMenu.Visible = not KeyMenu.Visible
 end)
 
@@ -294,7 +307,7 @@ ClearKeybindBtn.MouseButton1Click:Connect(function()
     updateButtonText()
 end)
 
--- Keybind press + close menu on click elsewhere
+-- Keybind press + close menu
 UIS.InputBegan:Connect(function(input, gpe)
     if WaitingForKey then return end
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -328,6 +341,7 @@ MinimizeButton.MouseButton1Click:Connect(function()
     if minimized then
         TweenService:Create(Frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 220, 0, 35)}):Play()
         ToggleButton.Visible = false
+        KeybindBtn.Visible = false
         NoAnimButton.Visible = false
         StatusDot.Visible = false
         StatusLabel.Visible = false
@@ -335,6 +349,7 @@ MinimizeButton.MouseButton1Click:Connect(function()
         TweenService:Create(Frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 220, 0, 140)}):Play()
         wait(0.2)
         ToggleButton.Visible = true
+        KeybindBtn.Visible = true
         NoAnimButton.Visible = true
         StatusDot.Visible = true
         StatusLabel.Visible = true
