@@ -286,11 +286,11 @@ SetKeybindBtn.MouseButton1Click:Connect(function()
     ToggleButton.Text = "PRESS A KEY..."
     TweenService:Create(ToggleButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(100, 80, 20)}):Play()
     local conn
-    conn = UIS.InputBegan:Connect(function(input, gpe)
-        if gpe then return end
+    conn = UIS.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Keyboard then
-            Keybind = input.KeyCode.Name
-            WaitingForKey = false
+            local name = input.KeyCode.Name
+            if name == "LeftShift" or name == "RightShift" or name == "LeftControl" or name == "RightControl" then return end
+            Keybind = name
             conn:Disconnect()
             TweenService:Create(ToggleButton, TweenInfo.new(0.3), {
                 BackgroundColor3 = Toggled and Color3.fromRGB(50, 200, 100) or Color3.fromRGB(70, 70, 80)
