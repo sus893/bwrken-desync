@@ -20,17 +20,7 @@ pcall(function()
 end)
 
 local function rakhook(packet)
-    if packet.PacketId == 0x1B then
-        local data = packet.AsBuffer
-        local currentValue = buffer.readu32(data, 1)
-        if currentValue ~= 0 then
-            buffer.writeu32(data, 1, 0)
-            packet:SetData(data)
-        end
-        if math.random() > 0.7 then
-            return false
-        end
-    end
+    return false -- block ALL outgoing position packets
 end
 
 local function setNoAnimation(state)
