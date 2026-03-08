@@ -9,12 +9,6 @@ local Toggled = false
 local NoAnimToggled = false
 local Connection = nil
 local Keybind = nil
-local RakNet = nil
-
--- Try to get RakNet instance
-pcall(function()
-    RakNet = require(game:GetService("ReplicatedStorage"):WaitForChild("RakNet"))
-end)
 
 -- Load saved keybind
 pcall(function()
@@ -27,35 +21,12 @@ pcall(function()
     end
 end)
 
--- Enhanced RakNet hook for better desync
 local function rakhook(packet)
-    if packet.PacketId == 0x05 or packet.PacketId == 0x13 or packet.PacketId == 0x1B then
-        -- Random chance to block movement/physics packets
-        if math.random() < 0.7 then
-            return false -- Block the packet
+    if packet.PacketId == 0x1B then
+        if math.random() > 0.5 then
+            return false
         end
     end
-    
-    -- Modify position data occasionally
-    if packet.PacketId == 0x08 and packet.Data and type(packet.Data) == "table" then
-        if math.random() < 0.3 then
-            packet.Data.Position = Vector3.new(
-                packet.Data.Position.X + math.random(-50, 50),
-                packet.Data.Position.Y + math.random(-50, 50),
-                packet.Data.Position.Z + math.random(-50, 50)
-            )
-        end
-    end
-    
-    return true -- Allow other packets
-end
-
--- Second hook for additional packet manipulation
-local function rakhook2(packet)
-    if packet.PacketId == 0x11 then -- Character state packet
-        return false -- Block character state updates
-    end
-    return true
 end
 
 local function setNoAnimation(state)
@@ -70,80 +41,12 @@ local function setNoAnimation(state)
     end
 end
 
--- Improved desync function
-local function startDesync()
-    if not RakNet then
-        warn("RakNet not found!")
-        return
-    end
-    
-    -- Add multiple hooks for better desync
-    pcall(function()
-        RakNet.add_send_hook(rakhook)
-        RakNet.add_send_hook(rakhook2)
-    end)
-    
-    -- Spoof network ownership
-    pcall(function()
-        local character = Player.Character
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            local hrp = character.HumanoidRootPart
-            local oldNetworkOwnership = hrp:GetNetworkOwner()
-            hrp:SetNetworkOwner(nil) -- Remove network ownership
-        end
-    end)
-    
-    -- Create a loop to maintain desync
-    Connection = RunService.Stepped:Connect(function()
-        if Toggled and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = Player.Character.HumanoidRootPart
-            
-            -- Randomly adjust position locally (visual desync)
-            if math.random() < 0.2 then
-                hrp.CFrame = hrp.CFrame * CFrame.new(math.random(-10, 10), 0, math.random(-10, 10))
-            end
-            
-            -- Disable network ownership
-            pcall(function()
-                hrp:SetNetworkOwner(nil)
-            end)
-            
-            -- Spoof velocity
-            if hrp:FindFirstChild("BodyVelocity") then
-                hrp.BodyVelocity.Velocity = Vector3.new(
-                    math.random(-100, 100),
-                    math.random(-100, 100),
-                    math.random(-100, 100)
-                )
-            end
-        end
-    end)
-end
+local function startDesync() end
 
 local function stopDesync()
-    if Connection then 
-        Connection:Disconnect()
-        Connection = nil 
-    end
-    
-    -- Remove RakNet hooks
-    pcall(function()
-        if RakNet then
-            RakNet.remove_send_hook(rakhook)
-            RakNet.remove_send_hook(rakhook2)
-        end
-    end)
-    
-    -- Reset network ownership
-    pcall(function()
-        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = Player.Character.HumanoidRootPart
-            hrp:SetNetworkOwner(Player)
-        end
-    end)
+    if Connection then Connection:Disconnect(); Connection = nil end
 end
 
--- UI Creation (keeping your existing UI code)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "BwrkensDesyncUI"
 ScreenGui.ResetOnSpawn = false
@@ -287,32 +190,29 @@ local function updateButtonText()
     ToggleButton.Text = (Toggled and "DEACTIVATE" or "ACTIVATE") .. keyStr
 end
 
+-- Show saved keybind in button on load
 updateButtonText()
 
 local function doToggle()
     if Toggled then
-        -- Deactivate
+        raknet.remove_send_hook(rakhook)
         stopDesync()
-        setNoAnimation(false)
         NoAnimToggled = false
+        setNoAnimation(false)
         NoAnimButton.Text = "NO ANIM: OFF"
-        
         TweenService:Create(NoAnimButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(60, 60, 100)}):Play()
         TweenService:Create(ToggleButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(70, 70, 80)}):Play()
         TweenService:Create(StatusDot, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(255, 70, 70)}):Play()
         StatusLabel.Text = "Inactive"
         StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
     else
-        -- Activate
         ToggleButton.Text = "INITIALIZING..."
         task.wait(0.1)
-        
+        raknet.add_send_hook(rakhook)
         startDesync()
-        
         NoAnimToggled = true
         setNoAnimation(true)
         NoAnimButton.Text = "NO ANIM: ON"
-        
         TweenService:Create(NoAnimButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(50, 80, 200)}):Play()
         TweenService:Create(ToggleButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(50, 200, 100)}):Play()
         TweenService:Create(StatusDot, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(50, 255, 100)}):Play()
@@ -323,7 +223,9 @@ local function doToggle()
     updateButtonText()
 end
 
-ToggleButton.MouseButton1Click:Connect(doToggle)
+ToggleButton.MouseButton1Click:Connect(function()
+    doToggle()
+end)
 
 UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
@@ -373,12 +275,5 @@ Player.CharacterAdded:Connect(function()
         task.wait(1)
         if NoAnimToggled then setNoAnimation(true) end
         startDesync()
-    end
-end)
-
--- Cleanup on game leave
-game:GetService("CoreGui"):GetPropertyChangedSignal("Parent"):Connect(function()
-    if Toggled then
-        stopDesync()
     end
 end)
