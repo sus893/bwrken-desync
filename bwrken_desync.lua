@@ -1,3 +1,13 @@
+local Players = game:GetService("Players")
+```
+
+So it looks like:
+```
+LINE 1: local Players = game:GetService("Players")
+LINE 2: local TweenService = game:GetService("TweenService")
+LINE 3: local RunService = game:GetService("RunService")
+LINE 4: local Player = Players.LocalPlayer
+...
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Player = Players.LocalPlayer
