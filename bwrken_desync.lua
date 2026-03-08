@@ -9,7 +9,6 @@ local Toggled = false
 local NoAnimToggled = false
 local Connection = nil
 local Keybind = nil
-local WaitingForKey = false
 
 local function rakhook(packet)
     if packet.PacketId == 0x1B then
@@ -63,7 +62,7 @@ ScreenGui.Parent = PlayerGui
 
 local Frame = Instance.new("Frame")
 Frame.Parent = ScreenGui
-Frame.Size = UDim2.new(0, 220, 0, 140)
+Frame.Size = UDim2.new(0, 220, 0, 165)
 Frame.AnchorPoint = Vector2.new(0.5, 0.5)
 Frame.Position = UDim2.new(0.5, 0, 0.5, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
@@ -120,8 +119,8 @@ StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
 -- Main toggle button
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Parent = Frame
-ToggleButton.Size = UDim2.new(0, 158, 0, 32)
-ToggleButton.Position = UDim2.new(0, 18, 0, 52)
+ToggleButton.Size = UDim2.new(0.8, 0, 0, 32)
+ToggleButton.Position = UDim2.new(0.1, 0, 0, 52)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(70, 70, 80)
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleButton.TextScaled = true
@@ -130,24 +129,11 @@ ToggleButton.Font = Enum.Font.GothamBold
 ToggleButton.BorderSizePixel = 0
 Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 8)
 
--- Keybind button (⌨)
-local KeybindBtn = Instance.new("TextButton")
-KeybindBtn.Parent = Frame
-KeybindBtn.Size = UDim2.new(0, 28, 0, 32)
-KeybindBtn.Position = UDim2.new(0, 180, 0, 52)
-KeybindBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-KeybindBtn.TextColor3 = Color3.fromRGB(180, 180, 255)
-KeybindBtn.TextScaled = true
-KeybindBtn.Text = "⌨"
-KeybindBtn.Font = Enum.Font.GothamBold
-KeybindBtn.BorderSizePixel = 0
-Instance.new("UICorner", KeybindBtn).CornerRadius = UDim.new(0, 8)
-
 -- No anim button
 local NoAnimButton = Instance.new("TextButton")
 NoAnimButton.Parent = Frame
 NoAnimButton.Size = UDim2.new(0.8, 0, 0, 28)
-NoAnimButton.Position = UDim2.new(0.1, 0, 0, 95)
+NoAnimButton.Position = UDim2.new(0.1, 0, 0, 92)
 NoAnimButton.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
 NoAnimButton.TextColor3 = Color3.fromRGB(200, 200, 255)
 NoAnimButton.TextScaled = true
@@ -155,6 +141,26 @@ NoAnimButton.Text = "NO ANIM: OFF"
 NoAnimButton.Font = Enum.Font.GothamBold
 NoAnimButton.BorderSizePixel = 0
 Instance.new("UICorner", NoAnimButton).CornerRadius = UDim.new(0, 8)
+
+-- Keybind TextBox (type a key name like "F", "X", "Delete")
+local KeybindBox = Instance.new("TextBox")
+KeybindBox.Parent = Frame
+KeybindBox.Size = UDim2.new(0.8, 0, 0, 24)
+KeybindBox.Position = UDim2.new(0.1, 0, 0, 130)
+KeybindBox.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+KeybindBox.TextColor3 = Color3.fromRGB(0, 220, 255)
+KeybindBox.PlaceholderText = "Keybind: type key (e.g. F)"
+KeybindBox.PlaceholderColor3 = Color3.fromRGB(80, 80, 100)
+KeybindBox.Text = ""
+KeybindBox.TextScaled = true
+KeybindBox.Font = Enum.Font.GothamBold
+KeybindBox.BorderSizePixel = 0
+KeybindBox.ClearTextOnFocus = false
+Instance.new("UICorner", KeybindBox).CornerRadius = UDim.new(0, 6)
+local KeybindStroke = Instance.new("UIStroke")
+KeybindStroke.Color = Color3.fromRGB(0, 150, 200)
+KeybindStroke.Thickness = 1
+KeybindStroke.Parent = KeybindBox
 
 -- Minimize button
 local MinimizeButton = Instance.new("TextButton")
@@ -167,6 +173,31 @@ MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeButton.Font = Enum.Font.GothamBold
 MinimizeButton.BorderSizePixel = 0
 Instance.new("UICorner", MinimizeButton).CornerRadius = UDim.new(0, 4)
+
+-- When user types in keybind box and presses enter
+KeybindBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local txt = KeybindBox.Text:gsub("%s+", "")
+        if txt == "" then
+            Keybind = nil
+            KeybindBox.PlaceholderText = "Keybind: type key (e.g. F)"
+        else
+            -- Capitalize first letter
+            txt = txt:sub(1,1):upper() .. txt:sub(2):lower()
+            -- Check if valid KeyCode
+            local ok, kc = pcall(function() return Enum.KeyCode[txt] end)
+            if ok and kc then
+                Keybind = txt
+                KeybindBox.Text = txt
+                KeybindBox.PlaceholderText = "Keybind: " .. txt
+            else
+                Keybind = nil
+                KeybindBox.Text = ""
+                KeybindBox.PlaceholderText = "Invalid key! Try again"
+            end
+        end
+    end
+end)
 
 local function updateButtonText()
     local keyStr = Keybind and " ["..Keybind.."]" or ""
@@ -203,62 +234,14 @@ local function doToggle()
     updateButtonText()
 end
 
--- Left click toggle
 ToggleButton.MouseButton1Click:Connect(function()
-    if WaitingForKey then return end
     doToggle()
 end)
 
--- Keybind button: click once to start listening, click again to cancel
-KeybindBtn.MouseButton1Click:Connect(function()
-    if WaitingForKey then
-        -- cancel
-        WaitingForKey = false
-        KeybindBtn.Text = "⌨"
-        KeybindBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-        updateButtonText()
-        return
-    end
-    WaitingForKey = true
-    KeybindBtn.Text = "✕"
-    KeybindBtn.BackgroundColor3 = Color3.fromRGB(120, 60, 20)
-    ToggleButton.Text = "PRESS KEY..."
-    TweenService:Create(ToggleButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(100, 80, 20)}):Play()
-end)
-
--- Global key listener
+-- Keybind listener
 UIS.InputBegan:Connect(function(input, gpe)
-    -- Keybind setting mode
-    if WaitingForKey then
-        if input.UserInputType == Enum.UserInputType.Keyboard then
-            local name = input.KeyCode.Name
-            if name == "LeftShift" or name == "RightShift" or name == "LeftControl"
-            or name == "RightControl" or name == "LeftAlt" or name == "RightAlt"
-            or name == "Escape" then
-                -- Escape = clear keybind
-                if name == "Escape" then Keybind = nil end
-                WaitingForKey = false
-                KeybindBtn.Text = "⌨"
-                KeybindBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-                updateButtonText()
-                TweenService:Create(ToggleButton, TweenInfo.new(0.3), {
-                    BackgroundColor3 = Toggled and Color3.fromRGB(50, 200, 100) or Color3.fromRGB(70, 70, 80)
-                }):Play()
-                return
-            end
-            Keybind = name
-            WaitingForKey = false
-            KeybindBtn.Text = "⌨"
-            KeybindBtn.BackgroundColor3 = Color3.fromRGB(30, 70, 30)
-            TweenService:Create(ToggleButton, TweenInfo.new(0.3), {
-                BackgroundColor3 = Toggled and Color3.fromRGB(50, 200, 100) or Color3.fromRGB(70, 70, 80)
-            }):Play()
-            updateButtonText()
-        end
-        return
-    end
-    -- Normal keybind press
-    if Keybind and not gpe and input.UserInputType == Enum.UserInputType.Keyboard then
+    if gpe then return end
+    if Keybind and input.UserInputType == Enum.UserInputType.Keyboard then
         if input.KeyCode.Name == Keybind then
             doToggle()
         end
@@ -286,16 +269,16 @@ MinimizeButton.MouseButton1Click:Connect(function()
     if minimized then
         TweenService:Create(Frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 220, 0, 35)}):Play()
         ToggleButton.Visible = false
-        KeybindBtn.Visible = false
         NoAnimButton.Visible = false
+        KeybindBox.Visible = false
         StatusDot.Visible = false
         StatusLabel.Visible = false
     else
-        TweenService:Create(Frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 220, 0, 140)}):Play()
+        TweenService:Create(Frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 220, 0, 165)}):Play()
         task.wait(0.2)
         ToggleButton.Visible = true
-        KeybindBtn.Visible = true
         NoAnimButton.Visible = true
+        KeybindBox.Visible = true
         StatusDot.Visible = true
         StatusLabel.Visible = true
     end
