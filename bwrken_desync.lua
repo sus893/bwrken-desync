@@ -1,3 +1,8 @@
+local raknet = rawget(getfenv(0), "raknet") or rawget(_G, "raknet") or rawget(shared, "raknet")
+if not raknet then
+    warn("raknet not found!")
+    return
+end
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
