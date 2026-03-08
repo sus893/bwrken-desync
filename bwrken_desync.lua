@@ -10,6 +10,17 @@ local NoAnimToggled = false
 local Connection = nil
 local Keybind = nil
 
+-- Load saved keybind
+pcall(function()
+    local saved = readfile("bwrken_keybind.txt"):gsub("%s+", "")
+    if saved ~= "" then
+        local ok, kc = pcall(function() return Enum.KeyCode[saved] end)
+        if ok and kc then
+            Keybind = saved
+        end
+    end
+end)
+
 local function rakhook(packet)
     if packet.PacketId == 0x1B then
         if math.random() > 0.5 then
@@ -129,7 +140,7 @@ KeybindBox.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 KeybindBox.TextColor3 = Color3.fromRGB(0, 220, 255)
 KeybindBox.PlaceholderText = "Keybind: type key (e.g. F)"
 KeybindBox.PlaceholderColor3 = Color3.fromRGB(80, 80, 100)
-KeybindBox.Text = ""
+KeybindBox.Text = Keybind or ""
 KeybindBox.TextScaled = true
 KeybindBox.Font = Enum.Font.GothamBold
 KeybindBox.BorderSizePixel = 0
@@ -157,12 +168,14 @@ KeybindBox.FocusLost:Connect(function(enterPressed)
         if txt == "" then
             Keybind = nil
             KeybindBox.PlaceholderText = "Keybind: type key (e.g. F)"
+            pcall(function() writefile("bwrken_keybind.txt", "") end)
         else
             txt = txt:sub(1,1):upper() .. txt:sub(2):lower()
             local ok, kc = pcall(function() return Enum.KeyCode[txt] end)
             if ok and kc then
                 Keybind = txt
                 KeybindBox.Text = txt
+                pcall(function() writefile("bwrken_keybind.txt", txt) end)
             else
                 Keybind = nil
                 KeybindBox.Text = ""
@@ -176,6 +189,9 @@ local function updateButtonText()
     local keyStr = Keybind and " ["..Keybind.."]" or ""
     ToggleButton.Text = (Toggled and "DEACTIVATE" or "ACTIVATE") .. keyStr
 end
+
+-- Show saved keybind in button on load
+updateButtonText()
 
 local function doToggle()
     if Toggled then
