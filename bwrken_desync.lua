@@ -5,7 +5,7 @@ local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
 local Toggled = false
-local LastPosition = nil
+local NoAnimToggled = false
 local Connection = nil
 
 local function rakhook(packet)
@@ -36,27 +36,17 @@ local function setNoAnimation(state)
     end
 end
 
-local function startPositionTracking()
+local function startDesync()
     Connection = RunService.Heartbeat:Connect(function()
-        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-            local rootPart = Player.Character.HumanoidRootPart
-            if LastPosition then
-                local distance = (rootPart.Position - LastPosition).Magnitude
-                if distance > 50 then
-                    rootPart.CFrame = CFrame.new(LastPosition) * rootPart.CFrame.Rotation
-                end
-            end
-            LastPosition = rootPart.Position
-        end
+        -- position lock removed, desync only
     end)
 end
 
-local function stopPositionTracking()
+local function stopDesync()
     if Connection then
         Connection:Disconnect()
         Connection = nil
     end
-    LastPosition = nil
 end
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -66,7 +56,7 @@ ScreenGui.Parent = PlayerGui
 
 local Frame = Instance.new("Frame")
 Frame.Parent = ScreenGui
-Frame.Size = UDim2.new(0, 220, 0, 100)
+Frame.Size = UDim2.new(0, 220, 0, 140)
 Frame.AnchorPoint = Vector2.new(0.5, 0.5)
 Frame.Position = UDim2.new(0.5, 0, 0.5, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
@@ -126,10 +116,11 @@ StatusLabel.TextScaled = true
 StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
 
+-- Main toggle button
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Parent = Frame
-ToggleButton.Size = UDim2.new(0.8, 0, 0, 35)
-ToggleButton.Position = UDim2.new(0.1, 0, 0.55, 0)
+ToggleButton.Size = UDim2.new(0.8, 0, 0, 32)
+ToggleButton.Position = UDim2.new(0.1, 0, 0, 52)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(70, 70, 80)
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleButton.TextScaled = true
@@ -141,66 +132,23 @@ local ButtonCorner = Instance.new("UICorner")
 ButtonCorner.CornerRadius = UDim.new(0, 8)
 ButtonCorner.Parent = ToggleButton
 
-local ButtonGradient = Instance.new("UIGradient")
-ButtonGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200))
-}
-ButtonGradient.Rotation = 90
-ButtonGradient.Parent = ToggleButton
+-- No animation toggle button
+local NoAnimButton = Instance.new("TextButton")
+NoAnimButton.Parent = Frame
+NoAnimButton.Size = UDim2.new(0.8, 0, 0, 28)
+NoAnimButton.Position = UDim2.new(0.1, 0, 0, 95)
+NoAnimButton.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
+NoAnimButton.TextColor3 = Color3.fromRGB(200, 200, 255)
+NoAnimButton.TextScaled = true
+NoAnimButton.Text = "NO ANIM: OFF"
+NoAnimButton.Font = Enum.Font.GothamBold
+NoAnimButton.BorderSizePixel = 0
 
-local hovering = false
-ToggleButton.MouseEnter:Connect(function()
-    hovering = true
-    if not Toggled then
-        TweenService:Create(ToggleButton, TweenInfo.new(0.2), {
-            BackgroundColor3 = Color3.fromRGB(85, 85, 95)
-        }):Play()
-    end
-end)
+local NoAnimCorner = Instance.new("UICorner")
+NoAnimCorner.CornerRadius = UDim.new(0, 8)
+NoAnimCorner.Parent = NoAnimButton
 
-ToggleButton.MouseLeave:Connect(function()
-    hovering = false
-    if not Toggled then
-        TweenService:Create(ToggleButton, TweenInfo.new(0.2), {
-            BackgroundColor3 = Color3.fromRGB(70, 70, 80)
-        }):Play()
-    end
-end)
-
-ToggleButton.MouseButton1Click:Connect(function()
-    if Toggled then
-        raknet.remove_send_hook(rakhook)
-        setNoAnimation(false)
-        stopPositionTracking()
-        TweenService:Create(ToggleButton, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-            BackgroundColor3 = Color3.fromRGB(70, 70, 80)
-        }):Play()
-        TweenService:Create(StatusDot, TweenInfo.new(0.3), {
-            BackgroundColor3 = Color3.fromRGB(255, 70, 70)
-        }):Play()
-        ToggleButton.Text = "ACTIVATE"
-        StatusLabel.Text = "Inactive"
-        StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    else
-        ToggleButton.Text = "INITIALIZING..."
-        wait(0.1)
-        raknet.add_send_hook(rakhook)
-        setNoAnimation(true)
-        startPositionTracking()
-        TweenService:Create(ToggleButton, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-            BackgroundColor3 = Color3.fromRGB(50, 200, 100)
-        }):Play()
-        TweenService:Create(StatusDot, TweenInfo.new(0.3), {
-            BackgroundColor3 = Color3.fromRGB(50, 255, 100)
-        }):Play()
-        ToggleButton.Text = "DEACTIVATE"
-        StatusLabel.Text = "Active"
-        StatusLabel.TextColor3 = Color3.fromRGB(50, 255, 100)
-    end
-    Toggled = not Toggled
-end)
-
+-- Minimize button
 local MinimizeButton = Instance.new("TextButton")
 MinimizeButton.Parent = Frame
 MinimizeButton.Size = UDim2.new(0, 20, 0, 20)
@@ -215,22 +163,69 @@ local MinimizeCorner = Instance.new("UICorner")
 MinimizeCorner.CornerRadius = UDim.new(0, 4)
 MinimizeCorner.Parent = MinimizeButton
 
+-- Main toggle logic
+ToggleButton.MouseButton1Click:Connect(function()
+    if Toggled then
+        raknet.remove_send_hook(rakhook)
+        stopDesync()
+        -- turn off no anim when deactivating
+        NoAnimToggled = false
+        setNoAnimation(false)
+        NoAnimButton.Text = "NO ANIM: OFF"
+        TweenService:Create(NoAnimButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(60, 60, 100)}):Play()
+        TweenService:Create(ToggleButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(70, 70, 80)}):Play()
+        TweenService:Create(StatusDot, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(255, 70, 70)}):Play()
+        ToggleButton.Text = "ACTIVATE"
+        StatusLabel.Text = "Inactive"
+        StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    else
+        ToggleButton.Text = "INITIALIZING..."
+        wait(0.1)
+        raknet.add_send_hook(rakhook)
+        startDesync()
+        -- auto enable no anim on activate
+        NoAnimToggled = true
+        setNoAnimation(true)
+        NoAnimButton.Text = "NO ANIM: ON"
+        TweenService:Create(NoAnimButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(50, 80, 200)}):Play()
+        TweenService:Create(ToggleButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(50, 200, 100)}):Play()
+        TweenService:Create(StatusDot, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(50, 255, 100)}):Play()
+        ToggleButton.Text = "DEACTIVATE"
+        StatusLabel.Text = "Active"
+        StatusLabel.TextColor3 = Color3.fromRGB(50, 255, 100)
+    end
+    Toggled = not Toggled
+end)
+
+-- No anim toggle logic (only works while desync is active)
+NoAnimButton.MouseButton1Click:Connect(function()
+    if not Toggled then return end
+    NoAnimToggled = not NoAnimToggled
+    setNoAnimation(NoAnimToggled)
+    if NoAnimToggled then
+        NoAnimButton.Text = "NO ANIM: ON"
+        TweenService:Create(NoAnimButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(50, 80, 200)}):Play()
+    else
+        NoAnimButton.Text = "NO ANIM: OFF"
+        TweenService:Create(NoAnimButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(60, 60, 100)}):Play()
+    end
+end)
+
+-- Minimize logic
 local minimized = false
 MinimizeButton.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
-        TweenService:Create(Frame, TweenInfo.new(0.3), {
-            Size = UDim2.new(0, 220, 0, 35)
-        }):Play()
+        TweenService:Create(Frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 220, 0, 35)}):Play()
         ToggleButton.Visible = false
+        NoAnimButton.Visible = false
         StatusDot.Visible = false
         StatusLabel.Visible = false
     else
-        TweenService:Create(Frame, TweenInfo.new(0.3), {
-            Size = UDim2.new(0, 220, 0, 100)
-        }):Play()
+        TweenService:Create(Frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 220, 0, 140)}):Play()
         wait(0.2)
         ToggleButton.Visible = true
+        NoAnimButton.Visible = true
         StatusDot.Visible = true
         StatusLabel.Visible = true
     end
@@ -239,7 +234,9 @@ end)
 Player.CharacterAdded:Connect(function()
     if Toggled then
         wait(1)
-        setNoAnimation(true)
-        startPositionTracking()
+        if NoAnimToggled then
+            setNoAnimation(true)
+        end
+        startDesync()
     end
 end)
