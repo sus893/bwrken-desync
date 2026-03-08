@@ -15,19 +15,15 @@ pcall(function()
     local saved = readfile("bwrken_keybind.txt"):gsub("%s+", "")
     if saved ~= "" then
         local ok, kc = pcall(function() return Enum.KeyCode[saved] end)
-        if ok and kc then Keybind = saved end
+        if ok and kc then
+            Keybind = saved
+        end
     end
 end)
 
 local function rakhook(packet)
     if packet.PacketId == 0x1B then
-        local data = packet.AsBuffer
-        local currentValue = buffer.readu32(data, 1)
-        if currentValue ~= 0 then
-            buffer.writeu32(data, 1, 0)
-            packet:SetData(data)
-        end
-        if math.random() > 0.7 then
+        if math.random() > 0.5 then
             return false
         end
     end
@@ -194,6 +190,7 @@ local function updateButtonText()
     ToggleButton.Text = (Toggled and "DEACTIVATE" or "ACTIVATE") .. keyStr
 end
 
+-- Show saved keybind in button on load
 updateButtonText()
 
 local function doToggle()
