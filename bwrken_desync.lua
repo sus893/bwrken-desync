@@ -8,37 +8,27 @@ local Toggled = false
 local LastPosition = nil
 local Connection = nil
 
--- Improved hook function with less aggressive packet manipulation
 local function rakhook(packet)
     if packet.PacketId == 0x1B then
-        -- Instead of completely overwriting, we'll selectively modify
         local data = packet.AsBuffer
         local currentValue = buffer.readu32(data, 1)
-        
-        -- Only modify if needed, reducing server rejection
         if currentValue ~= 0 then
             buffer.writeu32(data, 1, 0)
             packet:SetData(data)
         end
-        
-        -- Return false occasionally to prevent complete blocking
         if math.random() > 0.7 then
             return false
         end
     end
 end
 
--- Improved animation control with fallback
 local function setNoAnimation(state)
     local character = Player.Character or Player.CharacterAdded:Wait()
     local humanoid = character:WaitForChild("Humanoid", 5)
     local animate = character:FindFirstChild("Animate")
-    
     if animate then
         animate.Disabled = state
     end
-    
-    -- Additional animation control
     if state and humanoid then
         for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
             track:Stop()
@@ -46,20 +36,16 @@ local function setNoAnimation(state)
     end
 end
 
--- Position interpolation to prevent lagback
 local function startPositionTracking()
     Connection = RunService.Heartbeat:Connect(function()
         if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
             local rootPart = Player.Character.HumanoidRootPart
-            
             if LastPosition then
                 local distance = (rootPart.Position - LastPosition).Magnitude
-                -- Prevent extreme position changes
                 if distance > 50 then
                     rootPart.CFrame = CFrame.new(LastPosition) * rootPart.CFrame.Rotation
                 end
             end
-            
             LastPosition = rootPart.Position
         end
     end)
@@ -73,13 +59,11 @@ local function stopPositionTracking()
     LastPosition = nil
 end
 
--- Beautiful UI Creation
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "BwrkensDesyncUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
--- Main Frame with gradient background
 local Frame = Instance.new("Frame")
 Frame.Parent = ScreenGui
 Frame.Size = UDim2.new(0, 220, 0, 100)
@@ -90,12 +74,10 @@ Frame.BorderSizePixel = 0
 Frame.Active = true
 Frame.Draggable = true
 
--- Add rounded corners to main frame
 local FrameCorner = Instance.new("UICorner")
 FrameCorner.CornerRadius = UDim.new(0, 12)
 FrameCorner.Parent = Frame
 
--- Add gradient background
 local FrameGradient = Instance.new("UIGradient")
 FrameGradient.Color = ColorSequence.new{
     ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 45, 55)),
@@ -104,14 +86,12 @@ FrameGradient.Color = ColorSequence.new{
 FrameGradient.Rotation = 90
 FrameGradient.Parent = Frame
 
--- Add subtle border
 local FrameStroke = Instance.new("UIStroke")
 FrameStroke.Color = Color3.fromRGB(80, 80, 90)
 FrameStroke.Thickness = 1
 FrameStroke.Transparency = 0.5
 FrameStroke.Parent = Frame
 
--- Title with better styling
 local Title = Instance.new("TextLabel")
 Title.Parent = Frame
 Title.Size = UDim2.new(1, -20, 0, 30)
@@ -124,7 +104,6 @@ Title.Font = Enum.Font.Gotham
 Title.TextStrokeTransparency = 0.8
 Title.TextStrokeColor3 = Color3.fromRGB(100, 100, 255)
 
--- Status indicator
 local StatusDot = Instance.new("Frame")
 StatusDot.Parent = Frame
 StatusDot.Size = UDim2.new(0, 8, 0, 8)
@@ -147,7 +126,6 @@ StatusLabel.TextScaled = true
 StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
 
--- Beautiful toggle button
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Parent = Frame
 ToggleButton.Size = UDim2.new(0.8, 0, 0, 35)
@@ -159,12 +137,10 @@ ToggleButton.Text = "ACTIVATE"
 ToggleButton.Font = Enum.Font.GothamBold
 ToggleButton.BorderSizePixel = 0
 
--- Rounded corners for button
 local ButtonCorner = Instance.new("UICorner")
 ButtonCorner.CornerRadius = UDim.new(0, 8)
 ButtonCorner.Parent = ToggleButton
 
--- Button gradient
 local ButtonGradient = Instance.new("UIGradient")
 ButtonGradient.Color = ColorSequence.new{
     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
@@ -173,7 +149,6 @@ ButtonGradient.Color = ColorSequence.new{
 ButtonGradient.Rotation = 90
 ButtonGradient.Parent = ToggleButton
 
--- Button hover effect
 local hovering = false
 ToggleButton.MouseEnter:Connect(function()
     hovering = true
@@ -193,54 +168,39 @@ ToggleButton.MouseLeave:Connect(function()
     end
 end)
 
--- Smooth toggle animation
 ToggleButton.MouseButton1Click:Connect(function()
     if Toggled then
-        -- Deactivate
         raknet.remove_send_hook(rakhook)
         setNoAnimation(false)
         stopPositionTracking()
-        
-        -- Animate UI
         TweenService:Create(ToggleButton, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
             BackgroundColor3 = Color3.fromRGB(70, 70, 80)
         }):Play()
-        
         TweenService:Create(StatusDot, TweenInfo.new(0.3), {
             BackgroundColor3 = Color3.fromRGB(255, 70, 70)
         }):Play()
-        
         ToggleButton.Text = "ACTIVATE"
         StatusLabel.Text = "Inactive"
         StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-        
     else
-        -- Activate with delay to prevent instant freeze
         ToggleButton.Text = "INITIALIZING..."
         wait(0.1)
-        
         raknet.add_send_hook(rakhook)
         setNoAnimation(true)
         startPositionTracking()
-        
-        -- Animate UI
         TweenService:Create(ToggleButton, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
             BackgroundColor3 = Color3.fromRGB(50, 200, 100)
         }):Play()
-        
         TweenService:Create(StatusDot, TweenInfo.new(0.3), {
             BackgroundColor3 = Color3.fromRGB(50, 255, 100)
         }):Play()
-        
         ToggleButton.Text = "DEACTIVATE"
         StatusLabel.Text = "Active"
         StatusLabel.TextColor3 = Color3.fromRGB(50, 255, 100)
     end
-    
     Toggled = not Toggled
 end)
 
--- Add minimize button
 local MinimizeButton = Instance.new("TextButton")
 MinimizeButton.Parent = Frame
 MinimizeButton.Size = UDim2.new(0, 20, 0, 20)
@@ -276,7 +236,6 @@ MinimizeButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Cleanup on character respawn
 Player.CharacterAdded:Connect(function()
     if Toggled then
         wait(1)
