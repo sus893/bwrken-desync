@@ -9,7 +9,6 @@ local Toggled = false
 local NoAnimToggled = false
 local Connection = nil
 local Keybind = nil
-local loggedPackets = {}
 
 -- Load saved keybind
 pcall(function()
@@ -20,18 +19,17 @@ pcall(function()
     end
 end)
 
--- Packet logger hook (always on)
-raknet.add_send_hook(function(packet)
-    local id = packet.PacketId
-    if not loggedPackets[id] then
-        loggedPackets[id] = true
-        print("New Packet ID: " .. tostring(id) .. " (0x" .. string.format("%X", id) .. ")")
-    end
-end)
-
 local function rakhook(packet)
-    if packet.PacketId == 0x1B or packet.PacketId == 0x15 then
-        return false
+    if packet.PacketId == 0x1B then
+        local data = packet.AsBuffer
+        local currentValue = buffer.readu32(data, 1)
+        if currentValue ~= 0 then
+            buffer.writeu32(data, 1, 0)
+            packet:SetData(data)
+        end
+        if math.random() > 0.7 then
+            return false
+        end
     end
 end
 
