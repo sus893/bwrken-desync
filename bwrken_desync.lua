@@ -18,9 +18,6 @@ local function rakhook(packet)
             buffer.writeu32(data, 1, 0)
             packet:SetData(data)
         end
-        if math.random() > 0.7 then
-            return false
-        end
     end
 end
 
