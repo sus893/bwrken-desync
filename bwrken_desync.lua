@@ -1,12 +1,15 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
 local Toggled = false
 local NoAnimToggled = false
 local Connection = nil
+local Keybind = nil
+local WaitingForKey = false
 
 local function rakhook(packet)
     if packet.PacketId == 0x1B then
@@ -26,9 +29,7 @@ local function setNoAnimation(state)
     local character = Player.Character or Player.CharacterAdded:Wait()
     local humanoid = character:WaitForChild("Humanoid", 5)
     local animate = character:FindFirstChild("Animate")
-    if animate then
-        animate.Disabled = state
-    end
+    if animate then animate.Disabled = state end
     if state and humanoid then
         for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
             track:Stop()
@@ -36,19 +37,25 @@ local function setNoAnimation(state)
     end
 end
 
+local LockedCFrame = nil
+
 local function startDesync()
+    if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+        LockedCFrame = Player.Character.HumanoidRootPart.CFrame
+    end
     Connection = RunService.Heartbeat:Connect(function()
-        -- position lock removed, desync only
+        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and LockedCFrame then
+            Player.Character.HumanoidRootPart.CFrame = LockedCFrame
+        end
     end)
 end
 
 local function stopDesync()
-    if Connection then
-        Connection:Disconnect()
-        Connection = nil
-    end
+    if Connection then Connection:Disconnect(); Connection = nil end
+    LockedCFrame = nil
 end
 
+-- GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "BwrkensDesyncUI"
 ScreenGui.ResetOnSpawn = false
@@ -100,7 +107,6 @@ StatusDot.Size = UDim2.new(0, 8, 0, 8)
 StatusDot.Position = UDim2.new(0, 10, 0, 35)
 StatusDot.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
 StatusDot.BorderSizePixel = 0
-
 local StatusCorner = Instance.new("UICorner")
 StatusCorner.CornerRadius = UDim.new(1, 0)
 StatusCorner.Parent = StatusDot
@@ -127,12 +133,11 @@ ToggleButton.TextScaled = true
 ToggleButton.Text = "ACTIVATE"
 ToggleButton.Font = Enum.Font.GothamBold
 ToggleButton.BorderSizePixel = 0
-
 local ButtonCorner = Instance.new("UICorner")
 ButtonCorner.CornerRadius = UDim.new(0, 8)
 ButtonCorner.Parent = ToggleButton
 
--- No animation toggle button
+-- No anim button
 local NoAnimButton = Instance.new("TextButton")
 NoAnimButton.Parent = Frame
 NoAnimButton.Size = UDim2.new(0.8, 0, 0, 28)
@@ -143,7 +148,6 @@ NoAnimButton.TextScaled = true
 NoAnimButton.Text = "NO ANIM: OFF"
 NoAnimButton.Font = Enum.Font.GothamBold
 NoAnimButton.BorderSizePixel = 0
-
 local NoAnimCorner = Instance.new("UICorner")
 NoAnimCorner.CornerRadius = UDim.new(0, 8)
 NoAnimCorner.Parent = NoAnimButton
@@ -158,24 +162,75 @@ MinimizeButton.Text = "—"
 MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeButton.Font = Enum.Font.GothamBold
 MinimizeButton.BorderSizePixel = 0
-
 local MinimizeCorner = Instance.new("UICorner")
 MinimizeCorner.CornerRadius = UDim.new(0, 4)
 MinimizeCorner.Parent = MinimizeButton
 
--- Main toggle logic
-ToggleButton.MouseButton1Click:Connect(function()
+-- Keybind context menu
+local KeyMenu = Instance.new("Frame")
+KeyMenu.Parent = ScreenGui
+KeyMenu.Size = UDim2.new(0, 160, 0, 80)
+KeyMenu.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+KeyMenu.BorderSizePixel = 0
+KeyMenu.Visible = false
+KeyMenu.ZIndex = 10
+local KeyMenuCorner = Instance.new("UICorner")
+KeyMenuCorner.CornerRadius = UDim.new(0, 8)
+KeyMenuCorner.Parent = KeyMenu
+local KeyMenuStroke = Instance.new("UIStroke")
+KeyMenuStroke.Color = Color3.fromRGB(80, 80, 120)
+KeyMenuStroke.Thickness = 1
+KeyMenuStroke.Parent = KeyMenu
+
+local SetKeybindBtn = Instance.new("TextButton")
+SetKeybindBtn.Parent = KeyMenu
+SetKeybindBtn.Size = UDim2.new(1, -10, 0, 30)
+SetKeybindBtn.Position = UDim2.new(0, 5, 0, 8)
+SetKeybindBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
+SetKeybindBtn.TextColor3 = Color3.fromRGB(200, 200, 255)
+SetKeybindBtn.TextScaled = true
+SetKeybindBtn.Text = "Set Keybind"
+SetKeybindBtn.Font = Enum.Font.GothamBold
+SetKeybindBtn.BorderSizePixel = 0
+SetKeybindBtn.ZIndex = 11
+local SetKeybindCorner = Instance.new("UICorner")
+SetKeybindCorner.CornerRadius = UDim.new(0, 6)
+SetKeybindCorner.Parent = SetKeybindBtn
+
+local ClearKeybindBtn = Instance.new("TextButton")
+ClearKeybindBtn.Parent = KeyMenu
+ClearKeybindBtn.Size = UDim2.new(1, -10, 0, 26)
+ClearKeybindBtn.Position = UDim2.new(0, 5, 0, 46)
+ClearKeybindBtn.BackgroundColor3 = Color3.fromRGB(80, 30, 30)
+ClearKeybindBtn.TextColor3 = Color3.fromRGB(255, 150, 150)
+ClearKeybindBtn.TextScaled = true
+ClearKeybindBtn.Text = "Clear Keybind"
+ClearKeybindBtn.Font = Enum.Font.GothamBold
+ClearKeybindBtn.BorderSizePixel = 0
+ClearKeybindBtn.ZIndex = 11
+local ClearKeybindCorner = Instance.new("UICorner")
+ClearKeybindCorner.CornerRadius = UDim.new(0, 6)
+ClearKeybindCorner.Parent = ClearKeybindBtn
+
+local function updateButtonText()
+    local keyStr = Keybind and " ["..Keybind.."]" or ""
+    if Toggled then
+        ToggleButton.Text = "DEACTIVATE" .. keyStr
+    else
+        ToggleButton.Text = "ACTIVATE" .. keyStr
+    end
+end
+
+local function doToggle()
     if Toggled then
         raknet.remove_send_hook(rakhook)
         stopDesync()
-        -- turn off no anim when deactivating
         NoAnimToggled = false
         setNoAnimation(false)
         NoAnimButton.Text = "NO ANIM: OFF"
         TweenService:Create(NoAnimButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(60, 60, 100)}):Play()
         TweenService:Create(ToggleButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(70, 70, 80)}):Play()
         TweenService:Create(StatusDot, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(255, 70, 70)}):Play()
-        ToggleButton.Text = "ACTIVATE"
         StatusLabel.Text = "Inactive"
         StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
     else
@@ -183,21 +238,76 @@ ToggleButton.MouseButton1Click:Connect(function()
         wait(0.1)
         raknet.add_send_hook(rakhook)
         startDesync()
-        -- auto enable no anim on activate
         NoAnimToggled = true
         setNoAnimation(true)
         NoAnimButton.Text = "NO ANIM: ON"
         TweenService:Create(NoAnimButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(50, 80, 200)}):Play()
         TweenService:Create(ToggleButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(50, 200, 100)}):Play()
         TweenService:Create(StatusDot, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(50, 255, 100)}):Play()
-        ToggleButton.Text = "DEACTIVATE"
         StatusLabel.Text = "Active"
         StatusLabel.TextColor3 = Color3.fromRGB(50, 255, 100)
     end
     Toggled = not Toggled
+    updateButtonText()
+end
+
+-- Left click = toggle
+ToggleButton.MouseButton1Click:Connect(function()
+    if WaitingForKey then return end
+    KeyMenu.Visible = false
+    doToggle()
 end)
 
--- No anim toggle logic (only works while desync is active)
+-- Right click = show context menu
+ToggleButton.MouseButton2Click:Connect(function()
+    if WaitingForKey then return end
+    local pos = ToggleButton.AbsolutePosition
+    KeyMenu.Position = UDim2.new(0, pos.X + ToggleButton.AbsoluteSize.X + 5, 0, pos.Y)
+    KeyMenu.Visible = not KeyMenu.Visible
+end)
+
+-- Set keybind
+SetKeybindBtn.MouseButton1Click:Connect(function()
+    KeyMenu.Visible = false
+    WaitingForKey = true
+    ToggleButton.Text = "PRESS A KEY..."
+    TweenService:Create(ToggleButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(100, 80, 20)}):Play()
+    local conn
+    conn = UIS.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            Keybind = input.KeyCode.Name
+            WaitingForKey = false
+            conn:Disconnect()
+            TweenService:Create(ToggleButton, TweenInfo.new(0.3), {
+                BackgroundColor3 = Toggled and Color3.fromRGB(50, 200, 100) or Color3.fromRGB(70, 70, 80)
+            }):Play()
+            updateButtonText()
+        end
+    end)
+end)
+
+-- Clear keybind
+ClearKeybindBtn.MouseButton1Click:Connect(function()
+    Keybind = nil
+    KeyMenu.Visible = false
+    updateButtonText()
+end)
+
+-- Keybind press + close menu on click elsewhere
+UIS.InputBegan:Connect(function(input, gpe)
+    if WaitingForKey then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        KeyMenu.Visible = false
+    end
+    if Keybind and not gpe and input.UserInputType == Enum.UserInputType.Keyboard then
+        if input.KeyCode.Name == Keybind then
+            doToggle()
+        end
+    end
+end)
+
+-- No anim toggle
 NoAnimButton.MouseButton1Click:Connect(function()
     if not Toggled then return end
     NoAnimToggled = not NoAnimToggled
@@ -211,7 +321,7 @@ NoAnimButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Minimize logic
+-- Minimize
 local minimized = false
 MinimizeButton.MouseButton1Click:Connect(function()
     minimized = not minimized
@@ -234,9 +344,7 @@ end)
 Player.CharacterAdded:Connect(function()
     if Toggled then
         wait(1)
-        if NoAnimToggled then
-            setNoAnimation(true)
-        end
+        if NoAnimToggled then setNoAnimation(true) end
         startDesync()
     end
 end)
