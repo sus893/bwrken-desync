@@ -12,11 +12,8 @@ local Keybind = nil
 
 local function rakhook(packet)
     if packet.PacketId == 0x1B then
-        local data = packet.AsBuffer
-        local currentValue = buffer.readu32(data, 1)
-        if currentValue ~= 0 then
-            buffer.writeu32(data, 1, 0)
-            packet:SetData(data)
+        if math.random() > 0.5 then
+            return false
         end
     end
 end
@@ -37,10 +34,8 @@ local function startDesync() end
 
 local function stopDesync()
     if Connection then Connection:Disconnect(); Connection = nil end
-
 end
 
--- GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "BwrkensDesyncUI"
 ScreenGui.ResetOnSpawn = false
@@ -102,7 +97,6 @@ StatusLabel.TextScaled = true
 StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
 
--- Main toggle button
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Parent = Frame
 ToggleButton.Size = UDim2.new(0.8, 0, 0, 32)
@@ -115,7 +109,6 @@ ToggleButton.Font = Enum.Font.GothamBold
 ToggleButton.BorderSizePixel = 0
 Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 8)
 
--- No anim button
 local NoAnimButton = Instance.new("TextButton")
 NoAnimButton.Parent = Frame
 NoAnimButton.Size = UDim2.new(0.8, 0, 0, 28)
@@ -128,7 +121,6 @@ NoAnimButton.Font = Enum.Font.GothamBold
 NoAnimButton.BorderSizePixel = 0
 Instance.new("UICorner", NoAnimButton).CornerRadius = UDim.new(0, 8)
 
--- Keybind TextBox (type a key name like "F", "X", "Delete")
 local KeybindBox = Instance.new("TextBox")
 KeybindBox.Parent = Frame
 KeybindBox.Size = UDim2.new(0.8, 0, 0, 24)
@@ -148,7 +140,6 @@ KeybindStroke.Color = Color3.fromRGB(0, 150, 200)
 KeybindStroke.Thickness = 1
 KeybindStroke.Parent = KeybindBox
 
--- Minimize button
 local MinimizeButton = Instance.new("TextButton")
 MinimizeButton.Parent = Frame
 MinimizeButton.Size = UDim2.new(0, 20, 0, 20)
@@ -160,7 +151,6 @@ MinimizeButton.Font = Enum.Font.GothamBold
 MinimizeButton.BorderSizePixel = 0
 Instance.new("UICorner", MinimizeButton).CornerRadius = UDim.new(0, 4)
 
--- When user types in keybind box and presses enter
 KeybindBox.FocusLost:Connect(function(enterPressed)
     if enterPressed then
         local txt = KeybindBox.Text:gsub("%s+", "")
@@ -168,14 +158,11 @@ KeybindBox.FocusLost:Connect(function(enterPressed)
             Keybind = nil
             KeybindBox.PlaceholderText = "Keybind: type key (e.g. F)"
         else
-            -- Capitalize first letter
             txt = txt:sub(1,1):upper() .. txt:sub(2):lower()
-            -- Check if valid KeyCode
             local ok, kc = pcall(function() return Enum.KeyCode[txt] end)
             if ok and kc then
                 Keybind = txt
                 KeybindBox.Text = txt
-                KeybindBox.PlaceholderText = "Keybind: " .. txt
             else
                 Keybind = nil
                 KeybindBox.Text = ""
@@ -224,7 +211,6 @@ ToggleButton.MouseButton1Click:Connect(function()
     doToggle()
 end)
 
--- Keybind listener
 UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     if Keybind and input.UserInputType == Enum.UserInputType.Keyboard then
@@ -234,7 +220,6 @@ UIS.InputBegan:Connect(function(input, gpe)
     end
 end)
 
--- No anim toggle
 NoAnimButton.MouseButton1Click:Connect(function()
     if not Toggled then return end
     NoAnimToggled = not NoAnimToggled
@@ -248,7 +233,6 @@ NoAnimButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Minimize
 local minimized = false
 MinimizeButton.MouseButton1Click:Connect(function()
     minimized = not minimized
