@@ -20,7 +20,9 @@ pcall(function()
 end)
 
 local function rakhook(packet)
-    return false -- block ALL outgoing position packets
+    if packet.PacketId == 0x1B or packet.PacketId == 0x15 then
+        return false
+    end
 end
 
 local function setNoAnimation(state)
