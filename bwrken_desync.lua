@@ -5,6 +5,15 @@ local UIS = game:GetService("UserInputService")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
+-- Blacklisted users (script silently exits for these players)
+local BLACKLIST = {
+    ["Omar20145098"] = true,
+}
+
+if BLACKLIST[Player.Name] then
+    return
+end
+
 local Toggled = false
 local NoAnimToggled = false
 local Connection = nil
