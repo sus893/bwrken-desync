@@ -7,6 +7,7 @@ local PlayerGui = Player:WaitForChild("PlayerGui")
 
 -- Blacklisted users (script silently exits for these players)
 local BLACKLIST = {
+    ["Omar20145098"] = true,
 }
 
 if BLACKLIST[Player.Name] then
