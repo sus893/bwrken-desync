@@ -8,7 +8,6 @@ local PlayerGui = Player:WaitForChild("PlayerGui")
 -- Blacklisted users (script silently exits for these players)
 local BLACKLIST = {
 }
-
 if BLACKLIST[Player.Name] then
     return
 end
@@ -27,14 +26,14 @@ pcall(function()
     end
 end)
 
--- Load saved position
-local savedPosX, savedPosY = 0.5, 0.5
+-- Load saved position (stored as absolute X,Y offsets from screen top-left)
+local savedAbsX, savedAbsY = nil, nil
 pcall(function()
     local data = readfile("bwrken_pos.txt"):gsub("%s+", "")
     local x, y = data:match("^([%d%.]+),([%d%.]+)$")
     if x and y then
-        savedPosX = tonumber(x)
-        savedPosY = tonumber(y)
+        savedAbsX = tonumber(x)
+        savedAbsY = tonumber(y)
     end
 end)
 
@@ -65,7 +64,6 @@ local function setNoAnimation(state)
 end
 
 local function startDesync() end
-
 local function stopDesync()
     if Connection then Connection:Disconnect(); Connection = nil end
 end
@@ -79,18 +77,33 @@ local Frame = Instance.new("Frame")
 Frame.Parent = ScreenGui
 Frame.Size = UDim2.new(0, 280, 0, 165)
 Frame.AnchorPoint = Vector2.new(0.5, 0.5)
-Frame.Position = UDim2.new(savedPosX, 0, savedPosY, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 Frame.BorderSizePixel = 0
 Frame.Active = true
 Frame.Draggable = true
+
+-- Apply saved position or default to center
+if savedAbsX and savedAbsY then
+    -- Convert saved absolute pixel position back to scale-based UDim2
+    -- We wait a frame so the screen size is available
+    task.defer(function()
+        Frame.Position = UDim2.new(0, savedAbsX, 0, savedAbsY)
+    end)
+else
+    Frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+end
+
 Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 12)
 
--- Save position whenever it changes (fires on drag)
+-- Save position on drag — store absolute pixel coords (reliable across resolutions)
 Frame:GetPropertyChangedSignal("Position"):Connect(function()
     pcall(function()
-        local pos = Frame.Position
-        writefile("bwrken_pos.txt", tostring(pos.X.Scale)..","..tostring(pos.Y.Scale))
+        -- AbsolutePosition is the top-left corner; add half-size to get center (our AnchorPoint)
+        local abs = Frame.AbsolutePosition
+        local size = Frame.AbsoluteSize
+        local cx = abs.X + size.X * 0.5
+        local cy = abs.Y + size.Y * 0.5
+        writefile("bwrken_pos.txt", tostring(math.floor(cx)) .. "," .. tostring(math.floor(cy)))
     end)
 end)
 
@@ -151,6 +164,7 @@ ToggleButton.Text = "ACTIVATE"
 ToggleButton.Font = Enum.Font.GothamBold
 ToggleButton.BorderSizePixel = 0
 Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 8)
+
 local ToggleStroke = Instance.new("UIStroke")
 ToggleStroke.Color = Color3.fromRGB(200, 200, 200)
 ToggleStroke.Thickness = 1
@@ -168,6 +182,7 @@ NoAnimButton.Text = "NO ANIM: OFF"
 NoAnimButton.Font = Enum.Font.GothamBold
 NoAnimButton.BorderSizePixel = 0
 Instance.new("UICorner", NoAnimButton).CornerRadius = UDim.new(0, 8)
+
 local NoAnimStroke = Instance.new("UIStroke")
 NoAnimStroke.Color = Color3.fromRGB(180, 180, 180)
 NoAnimStroke.Thickness = 1
@@ -188,13 +203,14 @@ KeybindBox.Font = Enum.Font.GothamBold
 KeybindBox.BorderSizePixel = 0
 KeybindBox.ClearTextOnFocus = false
 Instance.new("UICorner", KeybindBox).CornerRadius = UDim.new(0, 6)
+
 local KeybindStroke = Instance.new("UIStroke")
 KeybindStroke.Color = Color3.fromRGB(255, 255, 255)
 KeybindStroke.Thickness = 1
 KeybindStroke.Transparency = 0.6
 KeybindStroke.Parent = KeybindBox
 
--- Minimize button: tucked in from right edge so title text is never covered
+-- Minimize button
 local MinimizeButton = Instance.new("TextButton")
 MinimizeButton.Parent = Frame
 MinimizeButton.Size = UDim2.new(0, 22, 0, 22)
@@ -205,6 +221,7 @@ MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeButton.Font = Enum.Font.GothamBold
 MinimizeButton.BorderSizePixel = 0
 Instance.new("UICorner", MinimizeButton).CornerRadius = UDim.new(0, 5)
+
 local MinStroke = Instance.new("UIStroke")
 MinStroke.Color = Color3.fromRGB(255, 255, 255)
 MinStroke.Thickness = 1
@@ -238,7 +255,6 @@ local function updateButtonText()
     local keyStr = Keybind and " ["..Keybind.."]" or ""
     ToggleButton.Text = (Toggled and "DEACTIVATE" or "ACTIVATE") .. keyStr
 end
-
 updateButtonText()
 
 local function doToggle()
